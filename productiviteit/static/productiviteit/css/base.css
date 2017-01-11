@@ -1,0 +1,41 @@
+h1 {color: red;}
+
+
+div.planningset {
+  margin-bottom: 2em;
+}
+
+.offset-bottom-s {margin-bottom: 0.5em }
+.offset-bottom-m {margin-bottom: 0.75em }
+.offset-bottom-l {margin-bottom: 1.0em }
+.offset-bottom-xl {margin-bottom: 1.5em }
+.offset-bottom-xxl {margin-bottom: 2.0em }
+
+
+label.formlabel {display: block;}
+input.formveld {display: block;}
+select.formveld {display: block;}
+a.delete-row {vertical-align: bottom;}
+
+p.error {color: red;}
+
+svg#chart{
+  margin: 0px;
+  padding: 0px;
+  height: 50%;
+  width: 100%;
+}
+
+svg#chart2{
+  margin: 0px;
+  padding: 0px;
+  height: 50%;
+  width: 100%;
+}
+
+svg.chart {
+  margin: 0px;
+  padding: 0px;
+  height: 75%;
+  width: 100%;
+}

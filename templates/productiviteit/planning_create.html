@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block title %}Planning{% endblock %}
+
+{% block content %}
+<h2>Planning productieve uren</h2> <br>
+
+{% if messages %}
+    {% for message in messages %}
+        <p class="error">{{ message }}</p>
+    {% endfor %}
+{% endif %}
+
+
+<form method="post">
+    {% csrf_token %}
+
+{{ planning_formset.management_form }}
+
+{% for planning in planning_formset %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-sm-9 col-m-8 col-l-6">
+      <div class="row planningset">
+        {% if planning.non_field_errors %}
+          {% for error in planning.non_field_errors %}
+            <p class="error"> {{error|escape}} </p>
+          {% endfor %}
+        {% endif %}
+        {% for hidden in planning.hidden_fields %}
+          {{ hidden }}
+          {% endfor %}
+            <div class="col-sm-3">
+              <label for="", class="formlabel">{{planning.soort.label}}</label>
+              {{planning.soort}}
+              {% if planning.soort.errors %}
+                {% for error in planning.soort.errors %}
+                  <p class="error"> {{error|escape}} </p>
+                {% endfor %}
+              {% endif %}
+           </div>
+           <div class="col-sm-3">
+              <label for="", class="formlabel">{{planning.startdatum.label}}</label>
+              {{planning.startdatum}}
+              {% if planning.startdatum.errors %}
+                {% for error in planning.startdatum.errors %}
+                  <p class="error"> {{error|escape}} </p>
+                {% endfor %}
+              {% endif %}
+          </div>
+          <div class="col-sm-3">
+              <label for="", class="formlabel">{{planning.einddatum.label}}</label>
+              {{planning.einddatum}}
+              {% if planning.einddatum.errors %}
+                {% for error in planning.einddatum.errors %}
+                  <p class="error">
+                    <p class="error"> {{error|escape}} </p>
+                  </p>
+                {% endfor %}
+              {% endif %}
+          </div>
+          <div class="col-sm-3">
+              <label for="", class="formlabel">{{planning.hoeveelheid.label}}</label>
+              {{planning.hoeveelheid}}
+              {% if planning.hoeveelheid.errors %}
+                {% for error in planning.hoeveelheid.errors %}
+                  <p class="error">
+                    <p class="error"> {{error|escape}} </p>
+                  </p>
+                {% endfor %}
+              {% endif %}
+          </div>
+          <!-- Clearfix is nodig om te zorgen dat bij een
+            validatiemelding de knop voor een nieuwe extra form in de settings
+            niet te laten verspringen -->
+          <div class="clearfix"> </div>
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+{% endfor %}
+<br>
+<input class="button" type="submit" value="Opslaan" />
+
+</form>
+
+
+
+
+
+
+{% endblock %}
+
+{% block scripts %}
+
+<script type="text/javascript">
+$(function () {
+                $('.datetimepicker').datetimepicker({
+            format: 'YYYY-MM-DD' /*remove this line if you want to use time as well */
+        });
+            });
+</script>
+
+<!-- Alleen script voor toevoegen extra forms in formset als er nieuwe planningen
+worden gemaakt  -->
+{% if edit == False %}
+<script src = "{% static 'productiviteit/js/dynamic_formset.js'%}"></script>
+
+<script type="text/javascript">
+$('.planningset').formset({
+    addText: 'add link',
+    deleteText: 'remove',
+    added: function(row) {$(function () {
+                    $('.datetimepicker').datetimepicker({
+                format: 'YYYY-MM-DD' /*remove this line if you want to use time as well */
+            });
+                });}
+});
+</script>
+{% endif %}
+
+
+{% endblock %}
