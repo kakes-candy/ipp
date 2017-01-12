@@ -1,4 +1,5 @@
 *.pyc
+*.pyo
 *~
 __pychache__
 newenv
