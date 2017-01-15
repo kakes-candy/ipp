@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block title %}Planningsoverzicht{% endblock %}
+
+{% block content %}
+<h2>Overzicht planningen</h2> <br>
+
+
+<ul>
+  {% for medewerker in medewerkers %}
+    <li> <a href="/planning/lijst/{{medewerker.pk}}">{{medewerker}}</a></li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}

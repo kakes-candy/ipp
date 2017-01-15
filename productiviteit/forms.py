@@ -30,8 +30,8 @@ class PlanningForm(forms.ModelForm):
         fields = ('soort', 'startdatum', 'einddatum', 'hoeveelheid',)
         labels = {'hoeveelheid' : 'Uren'}
         widgets = {
-        'soort': forms.Select(attrs={"class": "formveld"}),
-        'startdatum': forms.DateInput(attrs={'class': 'datetimepicker formveld'}),
-        'einddatum': forms.DateInput(attrs={'class': 'datetimepicker formveld'}),
-        'hoeveelheid': forms.NumberInput(attrs = {'class': 'formveld', 'step': '0.25'})
+        'soort': forms.Select(attrs={"class": "form-control"}),
+        'startdatum': forms.DateInput(attrs={'class': 'datetimepicker form-control'}),
+        'einddatum': forms.DateInput(attrs={'class': 'datetimepicker form-control'}),
+        'hoeveelheid': forms.NumberInput(attrs = {'class': 'form-control', 'step': '0.25'})
         }

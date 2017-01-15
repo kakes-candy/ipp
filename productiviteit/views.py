@@ -1,14 +1,14 @@
 from django.contrib.auth.views import login
 from django.contrib import messages
-from django.shortcuts import render, redirect, render_to_response
+from django.shortcuts import render, redirect, render_to_response, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Planning, Employee, Dagen, Feestdagen, VerdeeldePlanning, Timechart, Vestiging
 from .forms import PlanningForm
 from django.contrib.auth.models import User
 from django.forms import formset_factory, modelformset_factory
 from django.db import IntegrityError, transaction
-from django.db.models.functions import TruncMonth
-from django.db.models import Sum, Count, Value
+from django.db.models.functions import TruncMonth, TruncYear as Year
+from django.db.models import Sum, Count, Value, Q
 from django.core.urlresolvers import reverse
 from django.http import JsonResponse
 import datetime, time
@@ -16,28 +16,28 @@ from django.db.models import Prefetch
 
 
 # Home View.
+@login_required(login_url='/login/')
 def home(request, **kwargs):
-    if request.user.is_authenticated():
-        medewerker = Employee.objects.get(user = request.user)
-        rol = {}
-        if Vestiging.objects.filter(teamleider = medewerker).exists():
-            rol['naam'] = 'teamleider'
-        else:
-            rol['naam'] = 'behandelaar'
 
-        # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
-        # het zou mooier zijn om te kijken welke jaren in de data zitten, maar dat kost teveel tijd
-        jaren = []
-        # 1 januari van dit jaar opslaan
-        vandaag = datetime.datetime.today().date().replace(month=1).replace(day=1)
-        for i in range(0, 3):
-            date = vandaag.replace(year=(vandaag.year-i))
-            if date.year >= 2016:
-                jaren.append(date)
-
-        return render(request, 'productiviteit/home.html', {'naam': medewerker, 'jaren': jaren, 'rol': rol})
+    medewerker = Employee.objects.get(user = request.user)
+    rol = {}
+    if Vestiging.objects.filter(teamleider = medewerker).exists():
+        rol['naam'] = 'teamleider'
     else:
-        return login(request)
+        rol['naam'] = 'behandelaar'
+
+    # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
+    # het zou mooier zijn om te kijken welke jaren in de data zitten, maar dat kost teveel tijd
+    jaren = []
+    # 1 januari van dit jaar opslaan
+    vandaag = datetime.datetime.today().date().replace(month=1).replace(day=1)
+    for i in range(0, 3):
+        date = vandaag.replace(year=(vandaag.year-i))
+        if date.year >= 2016:
+            jaren.append(date)
+
+    return render(request, 'productiviteit/home.html', {'naam': medewerker, 'jaren': jaren, 'rol': rol})
+
 
 @login_required(login_url='/login/')
 def planning(request, planning_id=None):
@@ -294,3 +294,49 @@ def ajax_data(request):
             {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}]}
 
             return JsonResponse(data_nvd)
+
+
+def planning_overzicht(request, medewerker_id=None):
+
+    # Employee verbonden met account
+    gebruiker = Employee.objects.get(user = request.user)
+
+    # Eventuele teamleden ophalen
+    tl = Employee.objects.filter(vestiging__teamleider = gebruiker)
+
+    # Rol van de vrager bepalen
+    rol = {}
+    if tl.exists():
+        rol['naam'] = 'teamleider'
+    else:
+        rol['naam'] = 'behandelaar'
+
+    # Als om een specifieke medewerker wordt gevraagd deze proberen op te halen
+    if medewerker_id:
+        medewerker_id =  int(medewerker_id)
+        medewerker = get_object_or_404(Employee, pk = medewerker_id)
+        # heeft de gebruiker recht om deze client in te zien?
+        # (gebruiker vraagt voor zichzelf of is teamleider en vraagt voor een van zijn team)
+        if (medewerker_id == gebruiker.pk or tl.filter(pk = medewerker_id).exists()):
+            planningen = Planning.objects.filter(medewerker = medewerker_id)
+        # Geen rechten?, wegwezen
+        else:
+            messages.error(request, 'Geen rechten om de planningen van deze medewerker in te zien')
+            return redirect(reverse('home'))
+
+    # Als niet om een specifieke medewerker wordt gevraagd,
+    # mag een teamleider een lijst van zijn medewerkers zien
+    if not medewerker_id:
+        if rol['naam'] == 'teamleider':
+            # Hier doorsturen naar medewerkers lijst template
+            return render(request, 'productiviteit/medewerker_lijst.html',
+                            {'rol': rol, 'medewerkers': tl})
+        elif rol['naam'] == 'behandelaar':
+            # Als een normale behandelaar een verzoek stuurt zonder id, dan
+            # naar zijn eigen lijst verwijzen (indien mogelijk)
+            planningen = Planning.objects.filter(medewerker = gebruiker.pk)
+            # Hier doorsturen naar planningslijst template
+
+
+    return render(request, 'productiviteit/planning_lijst.html',
+                            {'rol': rol, 'planningen': planningen})

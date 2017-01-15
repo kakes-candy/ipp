@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block title %}Planningsoverzicht{% endblock %}
+
+{% block content %}
+<h2>Lijst planningen</h2> <br>
+
+{% if rol.naam == 'teamleider' %}
+  <a href="/planning/lijst/"> Terug naar de lijst behandelaren</a>
+{% endif %}
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Soort</th>
+      <th>Startdatum</th>
+      <th>Einddatum</th>
+      <th>Hoeveelheid</th>
+      <th>Actie</th>
+    </tr>
+  </thead>
+  <tbody>
+      {% for planning in planningen %}
+          <tr>
+            <td>{{planning.get_soort_display}}</td>
+            <td>{{planning.startdatum}}</td>
+            <td>{{planning.einddatum}}</td>
+            <td>{{planning.hoeveelheid}}</td>
+            <td> <a href="/planning/{{planning.pk}}">Aanpassen</a></td>
+          </tr>
+      {% endfor %}
+  </tbody>
+</table>
+
+
+{% for planning in planningen %}
+      <h2>{{planning.get_soort_value}}</h2>
+{% endfor %}
+
+
+{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}

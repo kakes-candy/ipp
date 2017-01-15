@@ -16,6 +16,14 @@
 {% for planning in planning_formset %}
 
 <div class="container">
+  <div class="row offset-bottom-l">
+    <div class="col-sm-9 col-m-8 col-l-6 bg-info">
+      <p class="textbox">
+        Voor nieuwe planningen in of bekijk <a href="/planning/lijst/">hier</a>
+        eerder ingevoerde planningen.
+      </p>
+    </div>
+  </div>
   <div class="row">
     <div class="col-sm-9 col-m-8 col-l-6">
       <div class="row planningset">
@@ -27,8 +35,8 @@
         {% for hidden in planning.hidden_fields %}
           {{ hidden }}
           {% endfor %}
-            <div class="col-sm-3">
-              <label for="", class="formlabel">{{planning.soort.label}}</label>
+            <div class="col-sm-3 col-xs-3 form-group">
+              <label for="", class="control-label">{{planning.soort.label}}</label>
               {{planning.soort}}
               {% if planning.soort.errors %}
                 {% for error in planning.soort.errors %}
@@ -36,8 +44,8 @@
                 {% endfor %}
               {% endif %}
            </div>
-           <div class="col-sm-3">
-              <label for="", class="formlabel">{{planning.startdatum.label}}</label>
+           <div class="col-sm-3 col-xs-3 form-group">
+              <label for="", class="control-label">{{planning.startdatum.label}}</label>
               {{planning.startdatum}}
               {% if planning.startdatum.errors %}
                 {% for error in planning.startdatum.errors %}
@@ -45,8 +53,8 @@
                 {% endfor %}
               {% endif %}
           </div>
-          <div class="col-sm-3">
-              <label for="", class="formlabel">{{planning.einddatum.label}}</label>
+          <div class="col-sm-3 col-xs-3 form-group">
+              <label for="", class="control-label">{{planning.einddatum.label}}</label>
               {{planning.einddatum}}
               {% if planning.einddatum.errors %}
                 {% for error in planning.einddatum.errors %}
@@ -56,7 +64,7 @@
                 {% endfor %}
               {% endif %}
           </div>
-          <div class="col-sm-3">
+          <div class="col-sm-3 col-xs-3 form-group">
               <label for="", class="formlabel">{{planning.hoeveelheid.label}}</label>
               {{planning.hoeveelheid}}
               {% if planning.hoeveelheid.errors %}
@@ -80,7 +88,7 @@
 
 {% endfor %}
 <br>
-<input class="button" type="submit" value="Opslaan" />
+<input class="btn btn-primary" type="submit" value="Opslaan" />
 
 </form>
 
