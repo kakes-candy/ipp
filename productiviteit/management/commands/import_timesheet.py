@@ -15,22 +15,31 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('pad', nargs='+', type=str)
+        parser.add_argument('jaar', nargs='+', type=int)
 
     def handle(self, *args, **options):
         pad = options['pad'][0]
-
+        jaar = options['jaar'][0]
 
         workbook = xlrd.open_workbook(pad)
         worksheet = workbook.sheet_by_name('Nacalculatieoverzicht (incl. au')
 
-        # Change this depending on how many header rows are present
-        # Set to 0 if you want to include the header data.
-        offset = 3
+        # Bijhouden of we het inlezen kan beginnen
+        skip = True
 
         rows = []
         for i, row in enumerate(range(worksheet.nrows)):
-            if i <= offset:  # (Optionally) skip headers
-                continue
+        # for i, row in enumerate(range(0,5)):
+
+            # Tot we de header rij hebben gevonden overslaan
+            if skip:
+                if worksheet.cell_value(i, 0) == 'Bkjr.':
+                    skip = False
+                    continue
+                else:
+                    continue
+
+
             r = []
             for j, col in enumerate(range(worksheet.ncols)):
 
@@ -42,16 +51,12 @@ class Command(BaseCommand):
                 dates = {5}
                 decimals = {6}
                 if j in integers:
-                    # print('converting to integer: ' + str(v_raw) + ' ' + str(i) + ':' + str(j))
                     v = int(v_raw)
                 elif j in strings:
-                    # print('converting to string: ' + str(v_raw))
                     v = str(v_raw)
                 elif j in dates:
-                    # print('converting to date: ' + str(v_raw))
                     v = xlrd.xldate.xldate_as_datetime(v_raw, workbook.datemode).strftime('%Y-%m-%d')
                 elif j in decimals:
-                    # print('converting to float: ' + str(v_raw))
                     v = Decimal(float(v_raw))
 
                 r.append(v)
@@ -111,9 +116,6 @@ class Command(BaseCommand):
 
             else:
                 print('personeelsnummer niet bekend: ' + str(key))
-
-
-
 
 
 
