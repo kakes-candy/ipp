@@ -67,17 +67,21 @@ class Command(BaseCommand):
 
                 v_raw = worksheet.cell_value(i, j)
 
-                # afhankelijk van type cell verwerken
-                if types[j] == 'integer':
-                    v = int(v_raw)
-                elif types[j] == 'string':
-                    v = str(v_raw)
-                elif types[j] == 'date':
-                    v = xlrd.xldate.xldate_as_datetime(v_raw, workbook.datemode).date()
-                elif types[j] == 'decimal':
-                    v = Decimal('% 6.2f' % v_raw)
+                try:
+                    # afhankelijk van type cell verwerken
+                    if types[j] == 'integer':
+                        v = int(v_raw)
+                    elif types[j] == 'string':
+                        v = str(v_raw)
+                    elif types[j] == 'date':
+                        v = xlrd.xldate.xldate_as_datetime(v_raw, workbook.datemode).date()
+                    elif types[j] == 'decimal':
+                        v = Decimal('% 6.2f' % v_raw)
 
-                r.append(v)
+                    r.append(v)
+                except Exception as e:
+                    print('row ' + str(j) + 'could not be processed due to the following error: ' + e.message)
+
             # Check of deze rij het jaar bevat dat is opgegeven
             if(r[cols.index('Datum')].year == jaar):
                 rows.append(r)
@@ -100,21 +104,24 @@ class Command(BaseCommand):
                 timesheets = list()
                 for act in activiteiten:
 
-                    timesheets.append(Timechart(
-                    boekjaar = act[0]
-                    ,periode = act[1]
-                    ,nacalculatie = act[2]
-                    ,naam = act[3]
-                    ,personeelsnummer = werknemer
-                    ,datum = act[5]
-                    ,aantal = act[6]
-                    ,soort = act[7]
-                    ,code = act[8]
-                    ,kostendrager = act[9]
-                    ,jaar = act[10]
-                    ,maand = act[11]
-                    ,direct = act[12]
-                    ))
+                    try:
+                        timesheets.append(Timechart(
+                        boekjaar = act[0]
+                        ,periode = act[1]
+                        ,nacalculatie = act[2]
+                        ,naam = act[3]
+                        ,personeelsnummer = werknemer
+                        ,datum = act[5]
+                        ,aantal = act[6]
+                        ,soort = act[7]
+                        ,code = act[8]
+                        ,kostendrager = act[9]
+                        ,jaar = act[10]
+                        ,maand = act[11]
+                        ,direct = act[12]
+                        ))
+                    except Exception as e:
+                        print('row could not saved as object because: ' + str(e.message))
 
                 # oude entries van deze werknemen verwijderen
                 oud = Timechart.objects.filter(personeelsnummer = werknemer, datum__year = jaar)
