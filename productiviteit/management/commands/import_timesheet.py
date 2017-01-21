@@ -27,14 +27,36 @@ class Command(BaseCommand):
         # Bijhouden of we het inlezen kan beginnen
         skip = True
 
+        headers = {'Bkjr.': {'type': 'integer'},
+                    'Periode' : {'type': 'integer'},
+                    'Nacalculatie' : {'type': 'string'},
+                     'Naam' : {'type': 'string'},
+                     'Mdw.' : {'type': 'integer'},
+                     'Datum' : {'type': 'date'},
+                     'Aantal' : {'type': 'decimal'},
+                     'Srt.' : {'type': 'string'},
+                     'Code' : {'type': 'string'},
+                     'Kostendrager medewerker': {'type': 'string'},
+                     'jaar': {'type': 'integer'},
+                     'maand': {'type': 'integer'},
+                     'direct' : {'type': 'string'}}
+        types = []
+        cols = []
+
         rows = []
+
         for i, row in enumerate(range(worksheet.nrows)):
-        # for i, row in enumerate(range(0,5)):
+        # for i, row in enumerate(range(0,500)):
 
             # Tot we de header rij hebben gevonden overslaan
             if skip:
-                if worksheet.cell_value(i, 0) == 'Bkjr.':
+                if worksheet.cell_value(i, 0) in headers.keys():
                     skip = False
+                    # Maak een lijst met de header types in de volgorde zoals in bestand
+                    for j, col in enumerate(range(worksheet.ncols)):
+                        v = worksheet.cell_value(i, j)
+                        cols.append(v)
+                        types.append(headers[v]['type'])
                     continue
                 else:
                     continue
@@ -45,44 +67,31 @@ class Command(BaseCommand):
 
                 v_raw = worksheet.cell_value(i, j)
 
-                # Bij positie bepalen
-                integers = {0, 1, 4, 10, 11}
-                strings = {2, 3, 7, 8, 9, 12}
-                dates = {5}
-                decimals = {6}
-                if j in integers:
+                # afhankelijk van type cell verwerken
+                if types[j] == 'integer':
                     v = int(v_raw)
-                elif j in strings:
+                elif types[j] == 'string':
                     v = str(v_raw)
-                elif j in dates:
-                    v = xlrd.xldate.xldate_as_datetime(v_raw, workbook.datemode).strftime('%Y-%m-%d')
-                elif j in decimals:
-                    v = Decimal(float(v_raw))
+                elif types[j] == 'date':
+                    v = xlrd.xldate.xldate_as_datetime(v_raw, workbook.datemode).date()
+                elif types[j] == 'decimal':
+                    v = Decimal('% 6.2f' % v_raw)
 
                 r.append(v)
-            rows.append(r)
-
-        print('Got '  + str(len(rows)) + ' rows')
-        print(rows[0])  # Print eerste rij met data
-        # print(rows[offset])  # Print first data row sample
-
+            # Check of deze rij het jaar bevat dat is opgegeven
+            if(r[cols.index('Datum')].year == jaar):
+                rows.append(r)
 
         # defaultdict gebruiken om in een dict per medewerker een
         # lijst van rijen te bouwen
         empdict = defaultdict(list)
-        count = 1
         for row in rows:
-            if count < 200000:
-                empdict[row[4]].append(row)
-                count = count + 1
-            else:
-                break
-
+            empdict[row[4]].append(row)
 
         # saving to database
         # check of medewerker in de database startdatum
         for key in empdict.keys():
-            print('personeelsnummer: ' + str(key))
+            # print('personeelsnummer: ' + str(key))
             if Employee.objects.filter(personeelsnummer = key).exists():
                 werknemer = Employee.objects.get(personeelsnummer = key)
                 activiteiten = empdict.get(key)
@@ -90,8 +99,6 @@ class Command(BaseCommand):
                 # Lijst maken om timesheet objecten in op te slaan
                 timesheets = list()
                 for act in activiteiten:
-
-                    print(str(act[6]))
 
                     timesheets.append(Timechart(
                     boekjaar = act[0]
@@ -109,15 +116,10 @@ class Command(BaseCommand):
                     ,direct = act[12]
                     ))
 
-                # Dan de hele lijst in 1 keer naar de database
+                # oude entries van deze werknemen verwijderen
+                oud = Timechart.objects.filter(personeelsnummer = werknemer, datum__year = jaar)
+                if oud.exists():
+                    oud.delete()
+
+                # Dan de hele lijst nieuwe in 1 keer naar de database
                 Timechart.objects.bulk_create(timesheets)
-
-
-
-            else:
-                print('personeelsnummer niet bekend: ' + str(key))
-
-
-
-        # pp = pprint.PrettyPrinter(indent = 2)
-        # pp.pprint(empdict)
