@@ -15,16 +15,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         pad = options['pad'][0]
 
-        count = 1
-
         with open(pad) as csvfile:
             linereader = csv.reader(csvfile, delimiter=',', quotechar='"')
             next(linereader)
-            for row in linereader:
+            for index, row in enumerate(linereader):
 
                 # Beperking van het aantal rijen
-
-
                 personeelsnummer = int(row[0])
                 pers_id = row[1].strip()
                 vestiging = row[2].strip()
@@ -44,16 +40,21 @@ class Command(BaseCommand):
                 else:
                     naam_vol = ' '.join([tussenvoegsel, achternaam])
 
-
                 # Vestiging uit de database ophalen
                 v = Vestiging.objects.get(naam = vestiging)
 
                 # Functie voor nu standaard op basispsycholoog
-                f = Functie.objects.get(naam = 'Basispsycholoog')
+                f = Functie.objects.filter(naam = 'Basispsycholoog')
+                if f.exists():
+                    f = f.get()
+                else:
+                    print('function not found')
+                    return
+
 
                 # gebruiker aanmaken
                 try:
-                    u = User.objects.create(username = gebruikersnaam,
+                    u = User.objects.create_user(username = gebruikersnaam,
                     password = wachtwoord, email = email, first_name = voornaam,
                     last_name = naam_vol)
 
@@ -66,7 +67,5 @@ class Command(BaseCommand):
                     functie = f)
 
                 except DatabaseError as e:
-                    self.stderr.write('there was a problem saving the user on line: ' + str(count)  + str(e.__cause__))
-
-
-                count = count + 1
+                    self.stderr.write('there was a problem saving Employee ' +
+                    naam_vol + ' on line: ' + str(index) + ' ' + str(e.__cause__))
