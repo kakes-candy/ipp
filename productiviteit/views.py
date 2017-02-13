@@ -320,7 +320,7 @@ def planning_lijst(request, medewerker_id=None):
 
 
 """
-View voor verschillende overzichten op vestigingsnivea
+View voor verschillende overzichten op vestigingsniveau
 """
 def vestiging(request, vestiging_id=None):
 
