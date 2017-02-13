@@ -169,15 +169,16 @@ var csrftoken = getCookie('csrftoken');
 
 
 
-function get_and_fill() {
+function get_and_fill(level) {
 
   //csrf token ophalen
    var csrftoken = getCookie('csrftoken');
    //wat zijn de gekozen waardes
    var val = $('#form_control').val()
-   var level = $(".btn-primary.active > input").val()
 
-   //Send data
+   console.log(level)
+
+  //  Verzoek sturen
     $.ajax({
       url : '/ajax_data/', // url van de ajax views
       type : "POST", // http method
@@ -207,12 +208,8 @@ function get_and_fill() {
 
 // zowel de select als de knoppen voorzien van listeners
 // zodat data ververst wordt bij aanpassing
-function initialise(id_select, id_btn) {
+function initialise(id_select) {
    $(id_select).change(function() {
-   get_and_fill();
+   get_and_fill(level);
   });
-  $(id_btn).change(function() {
-    get_and_fill();
-  });
-
 }

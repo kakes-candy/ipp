@@ -8,9 +8,22 @@
 <h2>Overzicht planningen</h2> <br>
 
 
-<ul>
+<ul class="list-unstyled">
   {% for medewerker in medewerkers %}
-    <li> <a href="/planning/lijst/{{medewerker.pk}}">{{medewerker}}</a></li>
+    <li> <div class="container">
+        <div class="row">
+            <div class="col-sm-4">
+                <h5>{{medewerker}}</h5>
+            </div>
+            <div class="col-sm-4">
+                <a href="/planning/lijst/{{medewerker.pk}}">Planningen</a>
+            </div>
+            <div class="col-sm-4">
+                <a href="/home/{{medewerker.pk}}">Overzicht</a>
+            </div>
+        </div>
+
+    </div></li>
   {% endfor %}
 </ul>
 
