@@ -151,7 +151,6 @@ def ajax_data(request):
             return 0
 
 
-
     if request.method == 'POST':
         if request.is_ajax():
             user = request.user
@@ -194,7 +193,7 @@ def ajax_data(request):
 
             # Alternatieve query, die meerdere resultaten tegelijk op kan halen
 
-            # regels voor prefetch van afas uren
+            # regels voor prefetch van afas uren (directe uren)
             p_afas = Prefetch('pnummer',
                 queryset = Timechart.objects.filter(datum__gte=start, datum__lte=eind, direct='1.0')\
                             .annotate(groep_maand = TruncMonth('datum')))
@@ -212,6 +211,7 @@ def ajax_data(request):
             totaal_afas = {}
             totaal_beschikbaar = {}
 
+            # Voor alle medewerkers in het totaaloverzicht
             for t in totaal:
                 #  Afas uren per maand uitrekenen en daarna optellen bij een totaaltelling
                 afas = t.pnummer.values('groep_maand').annotate(uren_direct = Sum('aantal'))
@@ -338,6 +338,7 @@ def vestiging(request, vestiging_id=None):
             # Check of deze gebruiker deze vestiging mag zien (teamleider)
             if has_permission(test_id = vestiging.pk, rol = rol, niveau = 'vestiging'):
 
+
                 # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
                 # het zou mooier zijn om te kijken welke jaren in de data zitten, maar dat kost teveel tijd
                 jaren = []
@@ -355,3 +356,21 @@ def vestiging(request, vestiging_id=None):
 
         return render(request, 'productiviteit/home.html', {
         'naam': vestiging, 'jaren': jaren, 'rol': rol, 'niveau': 'vestiging'})
+
+
+"""
+View met overzicht behandelaars voor teamleider
+"""
+
+def behandelaar_lijst(request, vestiging_id=None):
+        # medewerker uit user halen
+        medewerker = get_object_or_404(Employee, user = request.user)
+
+        # rol van gebruiker
+        rol = get_role(medewerker)
+
+        # als er een specifieke vestiging wordt gevraagd. Dan krijgt je die
+        if vestiging_id:
+            vestiging = get_object_or_404(Vestiging, pk = int(vestiging_id))
+            # Check of deze gebruiker deze vestiging mag zien (teamleider)
+            if has_permission(test_id = vestiging.pk, rol = rol, niveau = 'vestiging'):

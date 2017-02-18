@@ -12,5 +12,6 @@ urlpatterns = [
     url(r'^planning/lijst/$', views.planning_lijst, name='planning_lijst'),
     url(r'^planning/lijst/(?P<medewerker_id>\d+)/$', views.planning_lijst, name='planning_lijst'),
     url(r'^ajax_data/$', views.ajax_data, name='ajax_data'),
-
+    # url(r'^vestiging/behandelaars/$', views.behandelaar_lijst, name='behandelaar_lijst'),
+    # url(r'^vestiging/behandelaars/(?P<vestiging_id>\d+)/$', views.behandelaar_lijst, name='planning_lijst'),
 ]
