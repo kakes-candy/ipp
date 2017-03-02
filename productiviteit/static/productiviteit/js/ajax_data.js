@@ -169,14 +169,14 @@ var csrftoken = getCookie('csrftoken');
 
 
 
-function get_and_fill(level) {
+function get_and_fill() {
 
   //csrf token ophalen
    var csrftoken = getCookie('csrftoken');
    //wat zijn de gekozen waardes
    var val = $('#form_control').val()
 
-   console.log(level)
+   var level = $('.level').text()
 
   //  Verzoek sturen
     $.ajax({
@@ -210,6 +210,6 @@ function get_and_fill(level) {
 // zodat data ververst wordt bij aanpassing
 function initialise(id_select) {
    $(id_select).change(function() {
-   get_and_fill(level);
+   get_and_fill();
   });
 }

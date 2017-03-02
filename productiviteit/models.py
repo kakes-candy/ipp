@@ -86,7 +86,7 @@ class Timechart(models.Model):
     periode = models.IntegerField(null= True)
     nacalculatie = models.CharField(max_length = 100, blank = True, default = '')
     naam = models.CharField(max_length = 100, blank = True, default = '')
-    personeelsnummer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='pnummer')
+    personeelsnummer = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='timecharts')
     datum = models.DateField(null= True)
     aantal = models.DecimalField(max_digits=20, decimal_places=2, null= True)
     soort = models.CharField(max_length = 10, blank = True, default = '')

@@ -20,7 +20,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-sm-4"> 
+    <div class="col-sm-4">
       {% if rol.naam == 'teamleider' and niveau == 'individueel' %}
         <a href="/vestiging/{{vestiging}}">Overzicht per vestiging</a>
       {% elif rol.naam == 'teamleider' and niveau == 'vestiging' %}
@@ -48,6 +48,8 @@
     </div>
 </div>
 
+<!--verborgen element om niveau overzicht in opslaan  -->
+<p class='hidden level'>{{niveau}}</p>
 {% endblock %}
 
 
@@ -64,7 +66,7 @@
   // on click functie toevoegen aan select
   initialise('#form_control')
   // eerste vulling laten plaatsvinden
-  get_and_fill("{{niveau}}")
+  get_and_fill()
 
 </script>
 

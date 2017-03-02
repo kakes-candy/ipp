@@ -150,93 +150,128 @@ def ajax_data(request):
         else:
             return 0
 
+    print('ajax_data got a request')
 
-    if request.method == 'POST':
-        if request.is_ajax():
-            user = request.user
-            medewerker = Employee.objects.get(user = user)
-            naam = medewerker
-            niveau = request.POST.get('niveau', 'i')
-            if niveau == 'vestiging':
-                vestiging = medewerker.vestiging
-                med_lijst = vestiging.employee_set.values_list('pk')
-            elif niveau == 'individueel':
-                med_lijst = [medewerker.pk]
+    if request.method == 'POST' and request.is_ajax():
 
-            # uit de keuze een start en einddatum berekenen
-            try:
-                keuze = int(request.POST.get('keuze', 0))
-            except:
-                print('Choice could not be coerced to an integer')
+        user = request.user
+        medewerker = Employee.objects.get(user = user)
+        naam = medewerker
+        niveau = request.POST.get('niveau', 'individueel')
+        doel = request.POST.get('doel', 'detail')
+        if niveau == 'vestiging':
+            vestiging = medewerker.vestiging
+            med_lijst = vestiging.employee_set.values_list('pk')
+        elif niveau == 'individueel':
+            med_lijst = [medewerker.pk]
 
-            # 1 is de code voor de laatste 12 maanden
-            if keuze == 1:
-                # Eind is de laatste dag van deze maand
-                eind = datetime.datetime.today().date()
-                eind = eind.replace(day=1) + datetime.timedelta(days=32)
-                eind = eind.replace(day=1) - datetime.timedelta(days=1)
-                start = month_list(eind)[0]
-            # anders is er een jaar gekozen
-            else:
-                # print('keuze voor het jaar: ' + str(keuze))
-                eind = datetime.datetime.strptime((str(keuze) + '1231'), '%Y%m%d').date()
-                start = month_list(eind)[0]
+        # uit de keuze een start en einddatum berekenen
+        try:
+            keuze = int(request.POST.get('keuze', 0))
+        except:
+            print('Choice could not be coerced to an integer')
 
-            # Beschikbare uren door het aantal werkdagen te tellen en met 7,2 uur te vermenigvuldigen
-            uren_b = Dagen.objects.filter(dag__week_day__in=[2,3,4,5,6], dag__gte=start, dag__lte=eind) \
-                .exclude(feestdagen__vrije_dag__isnull = False) \
-                .annotate(groep_maand = TruncMonth('dag')) \
-                .values('groep_maand') \
-                .annotate(beschikbaar = Count('dag') * 7.2) \
-                .values('groep_maand', 'beschikbaar')
+        # 1 is de code voor de laatste 12 maanden
+        if keuze == 1:
+            # Eind is de laatste dag van deze maand
+            eind = datetime.datetime.today().date()
+            eind = eind.replace(day=1) + datetime.timedelta(days=32)
+            eind = eind.replace(day=1) - datetime.timedelta(days=1)
+            start = month_list(eind)[0]
+        # anders is er een jaar gekozen
+        else:
+            # print('keuze voor het jaar: ' + str(keuze))
+            eind = datetime.datetime.strptime((str(keuze) + '1231'), '%Y%m%d').date()
+            start = month_list(eind)[0]
 
-
-            # Alternatieve query, die meerdere resultaten tegelijk op kan halen
-
-            # regels voor prefetch van afas uren (directe uren)
-            p_afas = Prefetch('pnummer',
-                queryset = Timechart.objects.filter(datum__gte=start, datum__lte=eind, direct='1.0')\
-                            .annotate(groep_maand = TruncMonth('datum')))
-
-            # regels voor prefetch ipp uren
-            p_ipp = Prefetch('planning_set__verdeeldeplanning_set',
-                queryset = VerdeeldePlanning.objects.filter(datum__gte=start, datum__lte=eind) \
-                            .annotate(groep_maand = TruncMonth('datum')))
-
-            # gegevens ophalen van medewerkers, aangevuld met afas en ipp uren
-            totaal = Employee.objects.filter(pk__in = med_lijst).prefetch_related(p_afas, p_ipp)
+        # Beschikbare uren door het aantal werkdagen te tellen en met 7,2 uur te vermenigvuldigen
+        uren_b = Dagen.objects.filter(dag__week_day__in=[2,3,4,5,6], dag__gte=start, dag__lte=eind) \
+            .exclude(feestdagen__vrije_dag__isnull = False) \
+            .annotate(groep_maand = TruncMonth('dag')) \
+            .values('groep_maand') \
+            .annotate(beschikbaar = Count('dag') * 7.2) \
+            .values('groep_maand', 'beschikbaar')
 
 
-            # afas en ipp prefetches verder verwerken
-            totaal_afas = {}
-            totaal_beschikbaar = {}
+        # Alternatieve query, die meerdere resultaten tegelijk op kan halen
 
-            # Voor alle medewerkers in het totaaloverzicht
-            for t in totaal:
-                #  Afas uren per maand uitrekenen en daarna optellen bij een totaaltelling
-                afas = t.pnummer.values('groep_maand').annotate(uren_direct = Sum('aantal'))
-                for a in afas:
-                    old_a = totaal_afas.get(a['groep_maand'], 0)
-                    totaal_afas[a['groep_maand']] = old_a + a['uren_direct']
+        # regels voor prefetch van afas uren (directe uren)
+        p_afas = Prefetch('timecharts',
+            queryset = Timechart.objects\
+                        # .only('datum', 'direct', 'aantal')\
+                        .filter(datum__gte=start, datum__lte=eind, direct='1.0')\
+                        .annotate(groep_maand = TruncMonth('datum')))
 
-                # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
-                # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
-                planning = t.planning_set.all()
-                ipp_medewerk = {}
-                for p in planning:
-                    ipp_by_month = p.verdeeldeplanning_set.values('groep_maand').annotate(uren_ipp = Sum('verdeling'))
-                    for month in ipp_by_month:
-                        old = ipp_medewerk.get(month['groep_maand'], 0)
-                        ipp_medewerk[month['groep_maand']] = old + month['uren_ipp']
+        # regels voor prefetch ipp uren
+        p_ipp = Prefetch('planning_set__verdeeldeplanning_set',
+            queryset = VerdeeldePlanning.objects\
+                        # .only('datum', 'verdeling')
+                        .filter(datum__gte=start, datum__lte=eind) \
+                        .annotate(groep_maand = TruncMonth('datum')))
 
-                # ipp uren en beschibare uren samenvoegen en bij het totaalniveau optellen
-                for u in uren_b:
-                    beschikbaar_tot = totaal_beschikbaar.get(u['groep_maand'], 0)
-                    ipp_med_mnd = float(ipp_medewerk.get(u['groep_maand'], 0))
-                    beschikbaar_mnd = u['beschikbaar'] * t.fte
-                    netto = beschikbaar_mnd - ipp_med_mnd
-                    totaal_beschikbaar[u['groep_maand']] = beschikbaar_tot + netto
+        # gegevens ophalen van medewerkers, aangevuld met afas en ipp uren
+        data_teamleden = Employee.objects.filter(pk__in = med_lijst).prefetch_related(p_afas, p_ipp)
 
+
+        # afas en ipp prefetches verder verwerken
+        totaal_afas = {}
+        totaal_beschikbaar = {}
+
+        teamleden = {}
+        # Queryset heeft een lijst van medewerkers en bijhorende gegevens
+        # opgeleverd. Afhankelijk van het doel, sommeren we op totaalniveau per maand
+        # of maken we een samenvatting per medewerker, zonder maandonderscheid
+        for teamlid in data_teamleden:
+            #  Afas uren per maand uitrekenen
+            timecharts = teamlid.timecharts\
+                    .values('groep_maand')\
+                    .annotate(uren_direct = Sum('aantal'))\
+                    .values('groep_maand', 'uren_direct')
+
+            # toevoegen aan dict
+            teamleden[teamlid.pk] = {'timecharts': [x for x in timecharts]}
+
+            for maand in timecharts:
+                uren_maand_oud = totaal_afas.get(maand['groep_maand'], 0)
+                totaal_afas[maand['groep_maand']] = uren_maand_oud + maand['uren_direct']
+
+            # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
+            # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
+            planningen = teamlid.planning_set.all()
+            teamlidipp_uren = {}
+            ipp_medewerk = {}
+            teamleden[teamlid.pk]['ipp'] = {}
+            for planning in planningen:
+
+                ipp_soort = (planning.verdeeldeplanning_set
+                                        .values('groep_maand')
+                                        .annotate(uren_ipp = Sum('verdeling')))
+
+                teamleden[teamlid.pk]['ipp'][planning.get_soort_display()] = [
+                x for x in ipp_soort
+                ]
+
+                for month in ipp_soort:
+                    old = ipp_medewerk.get(month['groep_maand'], 0)
+                    ipp_medewerk[month['groep_maand']] = old + month['uren_ipp']
+
+            # ipp uren en beschibare uren samenvoegen en bij het totaalniveau optellen
+            teamleden[teamlid.pk]['beschikbaar'] = {}
+            for u in uren_b:
+                # Voor parttimers aantal beschikbare uren verminderen
+                beschikbaar_mnd = u['beschikbaar'] * teamlid.fte
+                # Voor verdere verwerking in browser
+                teamleden[teamlid.pk]['beschikbaar'][u['groep_maand']]  = u['beschikbaar'] * teamlid.fte
+                # teamleden[teamlid.pk]['beschikbaar']['groep_maand'] = u['beschikbaar'] * teamlid.fte
+                # beschikbare uren in de muaand, ophalen uit totaaltelling of anders 0
+                beschikbaar_tot = totaal_beschikbaar.get(u['groep_maand'], 0)
+                # geplande niet-productieve uren (ipp) van medewerker in die maand
+                ipp_med_mnd = float(ipp_medewerk.get(u['groep_maand'], 0))
+                # netto is het aantal beschikbare uren op basis van fte en werkdagen
+                # verminderd met geplande niet productieve uren
+                netto = beschikbaar_mnd - ipp_med_mnd
+                # optellen bij totaal
+                totaal_beschikbaar[u['groep_maand']] = beschikbaar_tot + netto
             # lijst van 12 maanden om waarden op te hangen
             kapstok = month_list(eind)
 
@@ -264,12 +299,31 @@ def ajax_data(request):
                 direct.append({'y': d, 'x': k})
                 direct_cum.append({'y': cum_d, 'x': kc})
 
+
+            # for k in kapstok:
+                # afas uren aanvullen zodat ook lege maanden een entry hebben
+
+
+
             data_nvd = {'data' : [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto},
             {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct}],
             'cumulatief':  [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto_cum},
-            {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}]}
+            {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}, ]}
 
-            return JsonResponse(data_nvd)
+
+        # # Doel: samenvatting. Data voor een andere view die per persoon
+        # # een samenvatting geeft van de belangrijkste gegevens
+        # if doel == 'samenvatting':
+        #     lijst = {}
+        #     for teamlid in team_lijst:
+        #         lijst[teamlid['uren_direct']] = teamlid.pnummer.annotate(uren_direct = Sum('aantal'))
+        #
+        #         # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
+        #         # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
+        #         planning = teamlid.planning_set.all()
+
+
+        return JsonResponse(data_nvd)
 
 
 """
@@ -374,3 +428,4 @@ def behandelaar_lijst(request, vestiging_id=None):
             vestiging = get_object_or_404(Vestiging, pk = int(vestiging_id))
             # Check of deze gebruiker deze vestiging mag zien (teamleider)
             if has_permission(test_id = vestiging.pk, rol = rol, niveau = 'vestiging'):
+                print('has permission')
