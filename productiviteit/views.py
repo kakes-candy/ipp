@@ -11,11 +11,11 @@ from django.db.models.functions import TruncMonth, TruncYear as Year
 from django.db.models import Sum, Count, Value, Q
 from django.core.urlresolvers import reverse
 from django.http import JsonResponse
-import datetime, time
+import datetime, time, pprint
 from django.db.models import Prefetch
 from productiviteit.utils import get_role, has_permission
 
-
+pp = pprint.PrettyPrinter(indent=4)
 
 """
 View met detailoverzicht van productiviteit afgelopen periode
@@ -229,7 +229,7 @@ def ajax_data(request):
                     .values('groep_maand', 'uren_direct')
 
             # toevoegen aan dict
-            teamleden[teamlid.pk] = {'timecharts': [x for x in timecharts]}
+            teamleden[teamlid.pk] = {'timecharts': {x['groep_maand']: x['uren_direct'] for x in timecharts}}
 
             for maand in timecharts:
                 uren_maand_oud = totaal_afas.get(maand['groep_maand'], 0)
@@ -247,9 +247,9 @@ def ajax_data(request):
                                         .values('groep_maand')
                                         .annotate(uren_ipp = Sum('verdeling')))
 
-                teamleden[teamlid.pk]['ipp'][planning.get_soort_display()] = [
-                x for x in ipp_soort
-                ]
+                teamleden[teamlid.pk]['ipp'][planning.get_soort_display()] = {
+                x['groep_maand']: x['uren_ipp'] for x in ipp_soort
+                }
 
                 for month in ipp_soort:
                     old = ipp_medewerk.get(month['groep_maand'], 0)
@@ -274,6 +274,7 @@ def ajax_data(request):
                 totaal_beschikbaar[u['groep_maand']] = beschikbaar_tot + netto
             # lijst van 12 maanden om waarden op te hangen
             kapstok = month_list(eind)
+
 
             # Beschikbare uren berekenen op basis van werk en feestdagen * fte,
             # dan ipp uren daarvan af halen. In formaat zetten dat door nvd3 verwacht wordt
@@ -300,15 +301,45 @@ def ajax_data(request):
                 direct_cum.append({'y': cum_d, 'x': kc})
 
 
-            # for k in kapstok:
-                # afas uren aanvullen zodat ook lege maanden een entry hebben
+        results ={}
+        # Alle teamleden langsgaan en dan wat 'housekeeping'
+        for key in teamleden.keys():
+            # print(str(key) + ' teamlid: ' + str(Employee.objects.get(pk = key)))
+            # pp.pprint(teamleden[key])
+            results[key] = {}
+            # Afas uren
+            results[key]['timecharts'] = [
+            {'x':k, 'y': float(teamleden[key]['timecharts'].get(k, 0))} for k in kapstok
+            ]
+            # beschikbare uren
+            results[key]['beschikbaar'] = [
+            {'x': k, 'y': float(teamleden[key]['beschikbaar'].get(k, 0))} for k in kapstok
+            ]
+            # ipp uren
+            for key_b in teamleden[key]['ipp'].keys():
+                results[key]['ipp'] ={}
+                results[key]['ipp'][key_b] = [
+                {'x': k, 'y': float(teamleden[key]['ipp'][key_b].get(k, 0))} for k in kapstok
+                ]
+
+
+                # for k in kapstok:
+                #     # Afas uren
+                #     # teamleden[key]['timecharts'][k] = teamleden[key]['timecharts'].get(k, 0)
+                #     # beschikbare uren
+                #     # teamleden[key]['beschikbaar'][k] = teamleden[key]['beschikbaar'].get(k, 0)
+                #     # ipp uren (kunnen meerdere soorten zijn)
+                #     for kk in teamleden[key]['ipp'].keys():
+                #         teamleden[key]['ipp'][kk][k] = teamleden[key]['ipp'][kk].get(k, 0)
+
+        pp.pprint(results)
 
 
 
-            data_nvd = {'data' : [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto},
-            {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct}],
-            'cumulatief':  [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto_cum},
-            {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}, ]}
+        data_nvd = {'data' : [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto},
+        {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct}],
+        'cumulatief':  [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto_cum},
+        {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}, ]}
 
 
         # # Doel: samenvatting. Data voor een andere view die per persoon
