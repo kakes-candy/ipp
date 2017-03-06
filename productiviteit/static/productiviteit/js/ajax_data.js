@@ -123,12 +123,10 @@ function line(data, target_id) {
             })
         ;
         chart.xAxis
-            // .axisLabel("Time (s)")
             .staggerLabels(true)
             .tickFormat(function(d) {
                         return d3.time.format('%b-%y')(new Date(d))
                     });
-
         chart.yAxis
             // .axisLabel('Voltage (v)')
 
@@ -175,7 +173,6 @@ function get_and_fill() {
    var csrftoken = getCookie('csrftoken');
    //wat zijn de gekozen waardes
    var val = $('#form_control').val()
-
    var level = $('.level').text()
 
   //  Verzoek sturen
@@ -189,11 +186,84 @@ function get_and_fill() {
     // handle a successful response
     success : function(json) {
 
+      // show data in console
+      console.log(json)
+      console.log(json.data_nieuw)
+
+      // Geraamte opzetten voor data bar graph
+      data_bar =  [
+        {color: "#5F9EA0",
+        key:"beschikbaar",
+        values: []},
+        {key: 'gerealiseerd',
+        color: '#FF7F50',
+        values: []
+        }
+      ]
+
+      // Zelfde voor line graph (= cumulatief)
+      data_line =  [
+        {color: "#5F9EA0",
+        key:"beschikbaar",
+        values: []},
+        {key: 'gerealiseerd',
+        color: '#FF7F50',
+        values: []
+        }
+      ]
+
+      $.each(json.data_nieuw, function(key, value_a){
+        console.log('processing: ' + key)
+        // beschikbare uren nett0 zijn: beschikbaar - ipp uren
+        $.each(value_a.beschikbaar, function(i, value_b) {
+              var maand = Date.parse(value_b.x)
+              var beschikbaar = value_b.y
+              // index uit loop gebruiken om ook timecharts op te halen
+              var gerealiseerd = value_a.timecharts[i].y
+              // alle verschillende soorten ipp van maand bij elkaar optellen
+              var ipp = 0
+
+              //check of er ipp's zijn, zo ja optellen bij totaal
+              if (Object.keys(value_a.ipp).length > 0) {
+                $.each(value_a.ipp, function(key, value_c){
+                  ipp += value_c[i].y
+                })
+              }
+              var beschikbaar_netto = beschikbaar - ipp
+
+              // toevoegen aan data voor grafiek, als al aanwezig
+              // beschikbaar en direct tegelijk
+              if (data_bar[0].values.length > i) {
+                data_bar[0].values[i].y += beschikbaar_netto
+                data_bar[1].values[i].y += gerealiseerd
+
+                if (i == 0) {
+                  data_line[0].values[0].y = data_bar[0].values[0].y
+                  data_line[1].values[0].y = data_bar[1].values[0].y
+                } else {
+                  data_line[0].values[i].y = data_bar[0].values[i].y + data_line[0].values[i-1].y
+                  data_line[1].values[i].y = data_bar[1].values[i].y + data_line[1].values[i-1].y
+                }
+              } else {
+              // als nog niet aanwezig
+              data_bar[0].values[i] = { x: maand, y: beschikbaar_netto}
+              data_bar[1].values[i] = { x: maand, y: gerealiseerd}
+              data_line[0].values[i] = $.extend(true, {}, data_bar[0].values[i])
+              data_line[1].values[i] = $.extend(true, {}, data_bar[1].values[i])
+              }
+        })
+      })
+
+    console.log('resultaten opgeteld')
+    console.log(data_bar)
+    console.log('resultaten opgeteld cumulatiefie')
+    console.log(data_line)
+
      //  draw table
      draw_table(data=json, target='table')
      // draw graphs
-     bar(data=json['data'], target_id='#chart')
-     line(data=json['cumulatief'], target_id='#chart2')
+     bar(data= data_bar, target_id='#chart')
+     line(data=data_line, target_id='#chart2')
 
 
     },

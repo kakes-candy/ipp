@@ -316,21 +316,13 @@ def ajax_data(request):
             {'x': k, 'y': float(teamleden[key]['beschikbaar'].get(k, 0))} for k in kapstok
             ]
             # ipp uren
+            results[key]['ipp'] ={}
             for key_b in teamleden[key]['ipp'].keys():
-                results[key]['ipp'] ={}
+                # results[key]['ipp'] ={}
                 results[key]['ipp'][key_b] = [
                 {'x': k, 'y': float(teamleden[key]['ipp'][key_b].get(k, 0))} for k in kapstok
                 ]
 
-
-                # for k in kapstok:
-                #     # Afas uren
-                #     # teamleden[key]['timecharts'][k] = teamleden[key]['timecharts'].get(k, 0)
-                #     # beschikbare uren
-                #     # teamleden[key]['beschikbaar'][k] = teamleden[key]['beschikbaar'].get(k, 0)
-                #     # ipp uren (kunnen meerdere soorten zijn)
-                #     for kk in teamleden[key]['ipp'].keys():
-                #         teamleden[key]['ipp'][kk][k] = teamleden[key]['ipp'][kk].get(k, 0)
 
         pp.pprint(results)
 
@@ -339,19 +331,9 @@ def ajax_data(request):
         data_nvd = {'data' : [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto},
         {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct}],
         'cumulatief':  [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto_cum},
-        {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}, ]}
+        {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}, ],
+        'data_nieuw': results}
 
-
-        # # Doel: samenvatting. Data voor een andere view die per persoon
-        # # een samenvatting geeft van de belangrijkste gegevens
-        # if doel == 'samenvatting':
-        #     lijst = {}
-        #     for teamlid in team_lijst:
-        #         lijst[teamlid['uren_direct']] = teamlid.pnummer.annotate(uren_direct = Sum('aantal'))
-        #
-        #         # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
-        #         # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
-        #         planning = teamlid.planning_set.all()
 
 
         return JsonResponse(data_nvd)
