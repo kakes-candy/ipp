@@ -231,15 +231,15 @@ def ajax_data(request):
             # toevoegen aan dict
             teamleden[teamlid.pk] = {'timecharts': {x['groep_maand']: x['uren_direct'] for x in timecharts}}
 
-            for maand in timecharts:
-                uren_maand_oud = totaal_afas.get(maand['groep_maand'], 0)
-                totaal_afas[maand['groep_maand']] = uren_maand_oud + maand['uren_direct']
+            # for maand in timecharts:
+            #     uren_maand_oud = totaal_afas.get(maand['groep_maand'], 0)
+            #     totaal_afas[maand['groep_maand']] = uren_maand_oud + maand['uren_direct']
 
             # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
             # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
             planningen = teamlid.planning_set.all()
-            teamlidipp_uren = {}
-            ipp_medewerk = {}
+            # teamlidipp_uren = {}
+            # ipp_medewerk = {}
             teamleden[teamlid.pk]['ipp'] = {}
             for planning in planningen:
 
@@ -250,55 +250,31 @@ def ajax_data(request):
                 teamleden[teamlid.pk]['ipp'][planning.get_soort_display()] = {
                 x['groep_maand']: x['uren_ipp'] for x in ipp_soort
                 }
-
-                for month in ipp_soort:
-                    old = ipp_medewerk.get(month['groep_maand'], 0)
-                    ipp_medewerk[month['groep_maand']] = old + month['uren_ipp']
+                #
+                # for month in ipp_soort:
+                #     old = ipp_medewerk.get(month['groep_maand'], 0)
+                #     ipp_medewerk[month['groep_maand']] = old + month['uren_ipp']
 
             # ipp uren en beschibare uren samenvoegen en bij het totaalniveau optellen
             teamleden[teamlid.pk]['beschikbaar'] = {}
             for u in uren_b:
                 # Voor parttimers aantal beschikbare uren verminderen
-                beschikbaar_mnd = u['beschikbaar'] * teamlid.fte
+                # beschikbaar_mnd = u['beschikbaar'] * teamlid.fte
                 # Voor verdere verwerking in browser
                 teamleden[teamlid.pk]['beschikbaar'][u['groep_maand']]  = u['beschikbaar'] * teamlid.fte
                 # teamleden[teamlid.pk]['beschikbaar']['groep_maand'] = u['beschikbaar'] * teamlid.fte
                 # beschikbare uren in de muaand, ophalen uit totaaltelling of anders 0
-                beschikbaar_tot = totaal_beschikbaar.get(u['groep_maand'], 0)
+                # beschikbaar_tot = totaal_beschikbaar.get(u['groep_maand'], 0)
                 # geplande niet-productieve uren (ipp) van medewerker in die maand
-                ipp_med_mnd = float(ipp_medewerk.get(u['groep_maand'], 0))
+                # ipp_med_mnd = float(ipp_medewerk.get(u['groep_maand'], 0))
                 # netto is het aantal beschikbare uren op basis van fte en werkdagen
                 # verminderd met geplande niet productieve uren
-                netto = beschikbaar_mnd - ipp_med_mnd
+                # netto = beschikbaar_mnd - ipp_med_mnd
                 # optellen bij totaal
-                totaal_beschikbaar[u['groep_maand']] = beschikbaar_tot + netto
+                # totaal_beschikbaar[u['groep_maand']] = beschikbaar_tot + netto
+
             # lijst van 12 maanden om waarden op te hangen
             kapstok = month_list(eind)
-
-
-            # Beschikbare uren berekenen op basis van werk en feestdagen * fte,
-            # dan ipp uren daarvan af halen. In formaat zetten dat door nvd3 verwacht wordt
-            beschikbaar_netto = []
-            beschikbaar_netto_cum = []
-            cum_b = 0
-            for k in kapstok:
-                kc = time.mktime(k.timetuple()) * 1000
-                netto = totaal_beschikbaar.get(k, 0)
-                cum_b = cum_b + netto
-                beschikbaar_netto.append({'y': int(netto), 'x': k})
-                beschikbaar_netto_cum.append({'y': int(cum_b), 'x': kc})
-
-
-            # Hetzelfde doen voor de uren afkomstig uit WeCare/AFAS
-            direct = []
-            direct_cum = []
-            cum_d = 0
-            for k in kapstok:
-                kc = time.mktime(k.timetuple()) * 1000
-                d = round(totaal_afas.get(k, 0))
-                cum_d = cum_d + d
-                direct.append({'y': d, 'x': k})
-                direct_cum.append({'y': cum_d, 'x': kc})
 
 
         results ={}
@@ -328,11 +304,7 @@ def ajax_data(request):
 
 
 
-        data_nvd = {'data' : [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto},
-        {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct}],
-        'cumulatief':  [ {'key': 'beschikbaar', 'color': '#5F9EA0', 'values': beschikbaar_netto_cum},
-        {'key': 'gerealiseerd', 'color': '#FF7F50', 'values': direct_cum}, ],
-        'data_nieuw': results}
+        data_nvd = {'data_nieuw': results}
 
 
 

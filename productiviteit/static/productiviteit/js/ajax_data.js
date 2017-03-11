@@ -26,7 +26,8 @@ function draw_table(data, target) {
     var date_format = d3.time.format('%b %Y')
     //
     // // dan langs data lopen om de header regel te vullen met datums
-    $.each(data.cumulatief[0].values, function(k, v){
+    console.log(data)
+    $.each(data[1].values, function(k, v){
       var text = new Date(v.x)
       var cell = h_row.append($('<th>' + date_format(text) + '</th>'))
     })
@@ -51,14 +52,14 @@ function draw_table(data, target) {
 
       // dan de rest door over data heen te loopen
       $.each(d.values, function(k, v){
-        var cell = row.append($('<td>' + v.y + '</td>'))
+        var cell = row.append($('<td>' + Math.round(v.y) + '</td>'))
       })
     };
 
     // regel voor beschikbare uren
-    row_add(add_to = $('#prod_body'), d = data.data[0], id = 'beschikbaar', klasse = 'beschikbaar')
+    row_add(add_to = $('#prod_body'), d = data[0], id = 'beschikbaar', klasse = 'beschikbaar')
     // regel voor gerealiseerde uren
-    row_add(add_to = $('#prod_body'), data = data.data[1], id = 'gerealiseerd', klasse = 'gerealiseerd')
+    row_add(add_to = $('#prod_body'), data = data[1], id = 'gerealiseerd', klasse = 'gerealiseerd')
 
 };
 
@@ -73,14 +74,13 @@ function bar(data, target_id) {
   nv.addGraph(function() {
       chart = nv.models.multiBarChart()
           .duration(300)
-          .margin({bottom: 100, left: 70})
+          .margin({bottom: 100, left: 60})
           .rotateLabels(-45)
           .groupSpacing(0.1)
           .showControls(false)
       ;
       chart.reduceXTicks(false).staggerLabels(true);
       chart.xAxis
-          .axisLabel("datum")
           .axisLabelDistance(35)
           .showMaxMin(false)
           .tickFormat(function(d) {
@@ -90,8 +90,11 @@ function bar(data, target_id) {
       chart.yAxis
           .axisLabel("uren")
           .axisLabelDistance(-5)
-          .tickFormat(d3.format('.'))
+          .tickFormat(d3.format('.0f'))
       ;
+
+      chart.tooltip.valueFormatter(d3.format('.0f'));
+
       chart.dispatch.on('renderEnd', function(){
           nv.log('Render Complete');
       });
@@ -115,20 +118,36 @@ function bar(data, target_id) {
 function line(data, target_id) {
 
     var chart;
+    // tick waarden in array, blijkbaar de enige manier om zelf te bepalen
+    // hoe ticks komen te staan
+    var ticks = []
+    $.each(data[0].values, function(index, value) {
+      ticks.push(value.x)
+    })
+    console.log(ticks)
     nv.addGraph(function() {
         chart = nv.models.lineChart()
             .options({
                 duration: 300,
-                useInteractiveGuideline: true
-            })
-        ;
+                useInteractiveGuideline: true,
+                margin:{bottom: 100, left: 30}
+            });
+
         chart.xAxis
+            .tickValues(ticks)
+            .rotateLabels(-45)
+            .axisLabelDistance(35)
+            .showMaxMin(false)
             .staggerLabels(true)
             .tickFormat(function(d) {
                         return d3.time.format('%b-%y')(new Date(d))
                     });
+        chart.forceY([0])
+        
         chart.yAxis
-            // .axisLabel('Voltage (v)')
+          .tickFormat(d3.format('.0f'))
+
+        chart.tooltip.valueFormatter(d3.format('.0f'));
 
         d3.select(target_id)
           .datum(data)
@@ -187,7 +206,7 @@ function get_and_fill() {
     success : function(json) {
 
       // show data in console
-      console.log(json)
+      // console.log(json)
       console.log(json.data_nieuw)
 
       // Geraamte opzetten voor data bar graph
@@ -213,7 +232,7 @@ function get_and_fill() {
       ]
 
       $.each(json.data_nieuw, function(key, value_a){
-        console.log('processing: ' + key)
+        // console.log('processing: ' + key)
         // beschikbare uren nett0 zijn: beschikbaar - ipp uren
         $.each(value_a.beschikbaar, function(i, value_b) {
               var maand = Date.parse(value_b.x)
@@ -248,19 +267,21 @@ function get_and_fill() {
               // als nog niet aanwezig
               data_bar[0].values[i] = { x: maand, y: beschikbaar_netto}
               data_bar[1].values[i] = { x: maand, y: gerealiseerd}
-              data_line[0].values[i] = $.extend(true, {}, data_bar[0].values[i])
-              data_line[1].values[i] = $.extend(true, {}, data_bar[1].values[i])
+              if(i == 0) {
+                data_line[0].values[i] = $.extend(true, {}, data_bar[0].values[i])
+                data_line[1].values[i] = $.extend(true, {}, data_bar[1].values[i])
+              } else {
+                data_line[0].values[i] = {x: maand, y:(data_bar[0].values[i].y + data_line[0].values[i-1].y)}
+                data_line[1].values[i] = {x: maand, y:(data_bar[1].values[i].y + data_line[1].values[i-1].y)}
+              }
               }
         })
       })
 
-    console.log('resultaten opgeteld')
-    console.log(data_bar)
-    console.log('resultaten opgeteld cumulatiefie')
-    console.log(data_line)
+
 
      //  draw table
-     draw_table(data=json, target='table')
+     draw_table(data=data_bar, target='table')
      // draw graphs
      bar(data= data_bar, target_id='#chart')
      line(data=data_line, target_id='#chart2')
