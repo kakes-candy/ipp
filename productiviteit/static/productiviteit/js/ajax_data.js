@@ -12,19 +12,15 @@ function draw_table(data, target) {
     //
     // // body (opnieuw) toevoegen aan table
     var tbody = table.append($("<tbody id='prod_body'></tbody>"))
-    //
     // //header regel
     var h_row = tbody.append($("<tr id='prod_header'></tr>"))
     h_row = $('#prod_header')
-    //
     // // eerste cel in elke regel geeft aan wat er in die regel staat.
     // // header regel heeft daar lege cel
     h_row.append('<th></th>')
-    //
     // // in de header regel komen de maanden te staan.
     // // lenen een stukje d3 om de datum in het formaat te krijgen
     var date_format = d3.time.format('%b %Y')
-    //
     // // dan langs data lopen om de header regel te vullen met datums
     console.log(data)
     $.each(data[1].values, function(k, v){
@@ -143,7 +139,7 @@ function line(data, target_id) {
                         return d3.time.format('%b-%y')(new Date(d))
                     });
         chart.forceY([0])
-        
+
         chart.yAxis
           .tickFormat(d3.format('.0f'))
 
@@ -158,9 +154,6 @@ function line(data, target_id) {
         return chart;
     });
 }
-
-
-
 
 
 // *************************************************************
@@ -182,7 +175,6 @@ function getCookie(name) {
     return cookieValue;
 }
 var csrftoken = getCookie('csrftoken');
-
 
 
 
