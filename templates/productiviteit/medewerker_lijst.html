@@ -5,30 +5,35 @@
 {% block title %}Planningsoverzicht{% endblock %}
 
 {% block content %}
-<h2>Overzicht planningen</h2> <br>
+<h2> {{naam}}: Behandelaars</h2> <br>
 
+<div class="row offset-bottom-xxl">
+  <div class="col-sm-3">
+    <select class="form-control years" name="" id='form_control'>
+        <option value="1"> laatste 12 maanden </option>
+      {% for jaar in jaren %}
+        <option value="{{jaar|date:'Y'}}"> {{jaar|date:'Y'}} </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
 
-<ul class="list-unstyled">
-  {% for medewerker in medewerkers %}
-    <li> <div class="container">
-        <div class="row">
-            <div class="col-sm-4">
-                <h5>{{medewerker}}</h5>
-            </div>
-            <div class="col-sm-4">
-                <a href="/planning/lijst/{{medewerker.pk}}">Planningen</a>
-            </div>
-            <div class="col-sm-4">
-                <a href="/home/{{medewerker.pk}}">Overzicht</a>
-            </div>
-        </div>
+<!--verborgen element om niveau overzicht in opslaan  -->
+<p class='hidden level'>{{niveau}}</p>
 
-    </div></li>
-  {% endfor %}
-</ul>
 
 {% endblock %}
 
 {% block scripts %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.5/nv.d3.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.5/nv.d3.min.js"> </script>
+
+<script src = "{% static 'productiviteit/js/ajax_employee_list.js'%}"></script>
+
+<script type="text/javascript">
+  get_and_fill()
+</script>
 
 {% endblock %}

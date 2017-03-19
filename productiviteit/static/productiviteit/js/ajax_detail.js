@@ -126,7 +126,7 @@ function line(data, target_id) {
             .options({
                 duration: 300,
                 useInteractiveGuideline: true,
-                margin:{bottom: 100, left: 30}
+                margin:{bottom: 100, left: 50}
             });
 
         chart.xAxis
@@ -174,7 +174,7 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-var csrftoken = getCookie('csrftoken');
+// var csrftoken = getCookie('csrftoken');
 
 
 

@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.http import JsonResponse
 import datetime, time, pprint
 from django.db.models import Prefetch
-from productiviteit.utils import get_role, has_permission
+from productiviteit.utils import get_role, has_permission, lijst_jaren
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -28,15 +28,9 @@ def behandelaar(request, medewerker_id=None):
         medewerker = get_object_or_404(Employee, pk = int(medewerker_id))
         rol = get_role(medewerker)
 
-        # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
-        # het zou mooier zijn om te kijken welke jaren in de data zitten, maar dat kost teveel tijd
-        jaren = []
-        # 1 januari van dit jaar opslaan
-        vandaag = datetime.datetime.today().date().replace(month=1).replace(day=1)
-        for i in range(0, 3):
-            date = vandaag.replace(year=(vandaag.year-i))
-            if date.year >= 2016:
-                jaren.append(date)
+        # lijst met jaren maken, huidig jaar en 2 jaar ervoor
+        jaren = lijst_jaren
+
     # als er geen specifieke medewerker is gevraagd, kijken of we uit de user
     # een mederwerker kunnen halen en daar naar redirecten
     else:
@@ -150,20 +144,18 @@ def ajax_data(request):
         else:
             return 0
 
-    print('ajax_data got a request')
-
     if request.method == 'POST' and request.is_ajax():
 
         user = request.user
-        medewerker = Employee.objects.get(user = user)
+        medewerker = Employee.objects.filter(user = user)
         naam = medewerker
         niveau = request.POST.get('niveau', 'individueel')
         doel = request.POST.get('doel', 'detail')
         if niveau == 'vestiging':
-            vestiging = medewerker.vestiging
-            med_lijst = vestiging.employee_set.values_list('pk')
+            vestiging = medewerker.get().vestiging
+            med_lijst = vestiging.employee_set.values()
         elif niveau == 'individueel':
-            med_lijst = [medewerker.pk]
+            med_lijst = medewerker
 
         # uit de keuze een start en einddatum berekenen
         try:
@@ -210,7 +202,7 @@ def ajax_data(request):
                         .annotate(groep_maand = TruncMonth('datum')))
 
         # gegevens ophalen van medewerkers, aangevuld met afas en ipp uren
-        data_teamleden = Employee.objects.filter(pk__in = med_lijst).prefetch_related(p_afas, p_ipp)
+        data_teamleden = Employee.objects.filter(pk__in = med_lijst.values_list('pk')).prefetch_related(p_afas, p_ipp)
 
 
         # afas en ipp prefetches verder verwerken
@@ -222,6 +214,9 @@ def ajax_data(request):
         # opgeleverd. Afhankelijk van het doel, sommeren we op totaalniveau per maand
         # of maken we een samenvatting per medewerker, zonder maandonderscheid
         for teamlid in data_teamleden:
+
+            tl_naam = teamlid.__str__()
+
             #  Afas uren per maand uitrekenen
             timecharts = teamlid.timecharts\
                     .values('groep_maand')\
@@ -229,49 +224,29 @@ def ajax_data(request):
                     .values('groep_maand', 'uren_direct')
 
             # toevoegen aan dict
-            teamleden[teamlid.pk] = {'timecharts': {x['groep_maand']: x['uren_direct'] for x in timecharts}}
-
-            # for maand in timecharts:
-            #     uren_maand_oud = totaal_afas.get(maand['groep_maand'], 0)
-            #     totaal_afas[maand['groep_maand']] = uren_maand_oud + maand['uren_direct']
+            teamleden[tl_naam] = {'timecharts': {x['groep_maand']: x['uren_direct'] for x in timecharts}}
 
             # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
             # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
             planningen = teamlid.planning_set.all()
             # teamlidipp_uren = {}
             # ipp_medewerk = {}
-            teamleden[teamlid.pk]['ipp'] = {}
+            teamleden[tl_naam]['ipp'] = {}
             for planning in planningen:
 
                 ipp_soort = (planning.verdeeldeplanning_set
                                         .values('groep_maand')
                                         .annotate(uren_ipp = Sum('verdeling')))
 
-                teamleden[teamlid.pk]['ipp'][planning.get_soort_display()] = {
+                teamleden[tl_naam]['ipp'][planning.get_soort_display()] = {
                 x['groep_maand']: x['uren_ipp'] for x in ipp_soort
                 }
-                #
-                # for month in ipp_soort:
-                #     old = ipp_medewerk.get(month['groep_maand'], 0)
-                #     ipp_medewerk[month['groep_maand']] = old + month['uren_ipp']
 
             # ipp uren en beschibare uren samenvoegen en bij het totaalniveau optellen
-            teamleden[teamlid.pk]['beschikbaar'] = {}
+            teamleden[tl_naam]['beschikbaar'] = {}
             for u in uren_b:
                 # Voor parttimers aantal beschikbare uren verminderen
-                # beschikbaar_mnd = u['beschikbaar'] * teamlid.fte
-                # Voor verdere verwerking in browser
-                teamleden[teamlid.pk]['beschikbaar'][u['groep_maand']]  = u['beschikbaar'] * teamlid.fte
-                # teamleden[teamlid.pk]['beschikbaar']['groep_maand'] = u['beschikbaar'] * teamlid.fte
-                # beschikbare uren in de muaand, ophalen uit totaaltelling of anders 0
-                # beschikbaar_tot = totaal_beschikbaar.get(u['groep_maand'], 0)
-                # geplande niet-productieve uren (ipp) van medewerker in die maand
-                # ipp_med_mnd = float(ipp_medewerk.get(u['groep_maand'], 0))
-                # netto is het aantal beschikbare uren op basis van fte en werkdagen
-                # verminderd met geplande niet productieve uren
-                # netto = beschikbaar_mnd - ipp_med_mnd
-                # optellen bij totaal
-                # totaal_beschikbaar[u['groep_maand']] = beschikbaar_tot + netto
+                teamleden[tl_naam]['beschikbaar'][u['groep_maand']]  = u['beschikbaar'] * teamlid.fte
 
             # lijst van 12 maanden om waarden op te hangen
             kapstok = month_list(eind)
@@ -300,7 +275,7 @@ def ajax_data(request):
                 ]
 
 
-        pp.pprint(results)
+        # pp.pprint(results)
 
 
 
@@ -340,18 +315,6 @@ def planning_lijst(request, medewerker_id=None):
         medewerker = get_object_or_404(Employee, user = request.user)
         return redirect('/planning/lijst/' + str(medewerker.pk) + '/')
 
-    # mag een teamleider een lijst van zijn medewerkers zien
-    # if not medewerker_id:
-    #     if rol['naam'] == 'teamleider':
-    #         # Hier doorsturen naar medewerkers lijst template
-    #         return render(request, 'productiviteit/medewerker_lijst.html',
-    #                         {'rol': rol['naam'], 'medewerkers': rol['tl']})
-    #     elif rol['naam'] == 'behandelaar':
-    #         # Als een normale behandelaar een verzoek stuurt zonder id, dan
-    #         # naar zijn eigen lijst verwijzen (indien mogelijk)
-    #         planningen = Planning.objects.filter(medewerker = rol['gebruiker'])
-    #         # Hier doorsturen naar planningslijst template
-
 
     return render(request, 'productiviteit/planning_lijst.html',
                             {'rol': rol, 'planningen': planningen})
@@ -379,14 +342,7 @@ def vestiging(request, vestiging_id=None):
 
 
                 # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
-                # het zou mooier zijn om te kijken welke jaren in de data zitten, maar dat kost teveel tijd
-                jaren = []
-                # 1 januari van dit jaar opslaan
-                vandaag = datetime.datetime.today().date().replace(month=1).replace(day=1)
-                for i in range(0, 3):
-                    date = vandaag.replace(year=(vandaag.year-i))
-                    if date.year >= 2016:
-                        jaren.append(date)
+                jaren = lijst_jaren
 
         # als er geen specifieke vestiging is gevraagd, kijken of we uit de user
         # een vestiging kunnen halen en daar naar redirecten
@@ -413,4 +369,8 @@ def behandelaar_lijst(request, vestiging_id=None):
             vestiging = get_object_or_404(Vestiging, pk = int(vestiging_id))
             # Check of deze gebruiker deze vestiging mag zien (teamleider)
             if has_permission(test_id = vestiging.pk, rol = rol, niveau = 'vestiging'):
-                print('has permission')
+
+                jaren = lijst_jaren
+
+                return render(request, 'productiviteit/medewerker_lijst.html', {
+                'naam': vestiging, 'niveau': 'vestiging', 'jaren': jaren})
