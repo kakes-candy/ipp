@@ -215,7 +215,10 @@ def ajax_data(request):
         # of maken we een samenvatting per medewerker, zonder maandonderscheid
         for teamlid in data_teamleden:
 
+            # Naam van de behandelaar
             tl_naam = teamlid.__str__()
+            # Pk van de behandelaar
+            tl_pk = teamlid.pk
 
             #  Afas uren per maand uitrekenen
             timecharts = teamlid.timecharts\
@@ -226,6 +229,7 @@ def ajax_data(request):
             # toevoegen aan dict
             teamleden[tl_naam] = {'timecharts': {x['groep_maand']: x['uren_direct'] for x in timecharts}}
 
+            teamleden[tl_naam]['pk'] = tl_pk
             # Ipp planningen hebben 2 niveaus, de planning en de verdeelde planning, die meerdere
             # maanden kan bevatten. Eerst de verdeelde planningen per maand sommeren
             planningen = teamlid.planning_set.all()
@@ -274,6 +278,7 @@ def ajax_data(request):
                 {'x': k, 'y': float(teamleden[key]['ipp'][key_b].get(k, 0))} for k in kapstok
                 ]
 
+            results[key]['pk'] = teamleden[key]['pk']
 
         # pp.pprint(results)
 
@@ -321,6 +326,7 @@ def planning_lijst(request, medewerker_id=None):
 
 
 
+
 """
 View voor verschillende overzichten op vestigingsniveau
 """
@@ -332,25 +338,30 @@ def vestiging(request, vestiging_id=None):
         # rol van gebruiker
         rol = get_role(medewerker)
 
-        # als er een specifieke vestiging wordt gevraagd. Dan krijgt je die
+        # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
+        jaren = lijst_jaren
+
+        # als er een specifieke vestiging wordt gevraagd. Dan krijgt je die als je
+        # rechten hebt
         if vestiging_id:
             vestiging = get_object_or_404(Vestiging, pk = int(vestiging_id))
 
 
             # Check of deze gebruiker deze vestiging mag zien (teamleider)
             if has_permission(test_id = vestiging.pk, rol = rol, niveau = 'vestiging'):
+                return render(request, 'productiviteit/home.html', {
+                    'naam': vestiging, 'jaren': jaren, 'rol': rol, 'niveau': 'vestiging'})
 
+            # Geen rechten?, wegwezen
+            else:
+                messages.error(request, 'Alleen de teamleider mag de vestigingspagina bekijken')
+                return redirect(reverse('behandelaar'))
 
-                # lijst met jaren maken, huidig jaar en 2 jaar ervoor, maar niet lager dan 2016
-                jaren = lijst_jaren
 
         # als er geen specifieke vestiging is gevraagd, kijken of we uit de user
         # een vestiging kunnen halen en daar naar redirecten
         else:
             return redirect('/vestiging/' + str(medewerker.vestiging.pk) + '/')
-
-        return render(request, 'productiviteit/home.html', {
-        'naam': vestiging, 'jaren': jaren, 'rol': rol, 'niveau': 'vestiging'})
 
 
 """
@@ -369,8 +380,6 @@ def behandelaar_lijst(request, vestiging_id=None):
             vestiging = get_object_or_404(Vestiging, pk = int(vestiging_id))
             # Check of deze gebruiker deze vestiging mag zien (teamleider)
             if has_permission(test_id = vestiging.pk, rol = rol, niveau = 'vestiging'):
-
                 jaren = lijst_jaren
-
                 return render(request, 'productiviteit/medewerker_lijst.html', {
                 'naam': vestiging, 'niveau': 'vestiging', 'jaren': jaren})

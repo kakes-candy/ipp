@@ -18,6 +18,24 @@
   </div>
 </div>
 
+<div class="row offset-bottom-xxl">
+  <div class="col-sm-12">
+    <table id="medewerker_lijst">
+     <thead>
+       <tr>
+         <th>naam</th>
+         <th>beschikbaar</th>
+         <th>ipp_medewerk</th>
+         <th>direct</th>
+         <th>productiviteit</th>
+       </tr>
+     </thead>
+    </table>
+  </div>
+</div>
+
+
+
 <!--verborgen element om niveau overzicht in opslaan  -->
 <p class='hidden level'>{{niveau}}</p>
 
@@ -26,14 +44,18 @@
 
 {% block scripts %}
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.5/nv.d3.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.5/nv.d3.min.js"> </script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.13/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.10.13/js/jquery.dataTables.min.js"> </script>
+
 
 <script src = "{% static 'productiviteit/js/ajax_employee_list.js'%}"></script>
 
+
 <script type="text/javascript">
-  get_and_fill()
+
+  initialise('#form_control')
+  //
+  get_fill()
 </script>
 
 {% endblock %}

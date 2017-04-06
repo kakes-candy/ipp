@@ -17,64 +17,101 @@ function getCookie(name) {
 
 
 
-function get_and_fill() {
 
-  //csrf token ophalen
-   var csrftoken = getCookie('csrftoken');
-   //wat zijn de gekozen waardes
-   var val = $('#form_control').val()
-   var level = $('.level').text()
-
-  //  Verzoek sturen
-    $.ajax({
-      url : '/ajax_data/', // url van de ajax views
-      type : "POST", // http method
-      data : { csrfmiddlewaretoken : csrftoken,
-        keuze: val, niveau: level
-    },
-
-    // handle a successful response
-    success : function(json) {
-
-      // show data in console
-      // console.log(json)
-      console.log(json.data_nieuw)
-
-      // Data is per behandelaar, met daaronder nog verschillende categorieen
-      // Hier samenvatten per behandelaar
-      teamleden = []
-      console.log('start processing json')
-      $.each(json.data_nieuw, function(key, value) {
-        // beschikbare uren sommeren
-        var beschikbaar = value.beschikbaar.reduce(function (a, b) {return a + b.y;}, 0)
-        // console.log('beschikbare uren: ' + beschikbaar)
-        // ipp uren sommeren
-        var ipp = 0
-        $.each(value.ipp, function(key, value) {
-          ipp += value.reduce(function (a, b) {return a + b.y;}, 0)
-        })
-        // directe uren sommeren
-        var direct = value.timecharts.reduce(function(a, b) {return a + b.y;}, 0)
-
-        // object met gegevens behandelaar aan array toevoegen
-        teamlid = {
-          naam:key,
-          beschikbaar: beschikbaar,
-          ipp: ipp,
-          direct: direct,
-          productiviteit: (direct/(beschikbaar - ipp))
-        }
-        console.log(teamlid)
-        teamleden.push(teamlid)
-      })
-
-    },
-
-    // handle a non-successful response
-    error : function(xhr,errmsg,err) {
-    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-    }
+// zowel de select als de knoppen voorzien van listeners
+// zodat data ververst wordt bij aanpassing
+function initialise(id_select) {
+   $(id_select).change(function() {
+   get_fill();
   });
-};
+}
 
-console.log('ajax_employee_list.js loaded...')
+
+function get_fill() {
+
+  var target = '#medewerker_lijst'
+  console.log('get fill starting')
+  console.log($(target))
+  console.log($(target).hasClass('dataTable'))
+
+  if($(target).hasClass('dataTable')) {
+    console.log('reloading')
+    $(target).DataTable().ajax.reload()
+  }
+  if (! $(target).hasClass('dataTable')){
+    console.log('target is not a datatable')
+    $(target).DataTable({
+
+      "ajax": {
+        "url" : '/ajax_data/', // url van de ajax views
+        "type" : "POST", // http method
+        "data" : function () {
+                var t = { "csrfmiddlewaretoken" : getCookie('csrftoken'),
+                  "keuze": val = $('#form_control').val(),
+                  "niveau": level = $('.level').text()}
+                  console.log(t)
+                  return t;
+                },
+        "dataSrc": function ( json ) {
+          teamleden = []
+          console.log('start processing json')
+          $.each(json.data_nieuw, function(key, value) {
+            // beschikbare uren sommeren
+            var beschikbaar = value.beschikbaar.reduce(function (a, b) {return a + b.y;}, 0)
+
+            var ipp = 0
+            $.each(value.ipp, function(key, value) {
+              ipp += value.reduce(function (a, b) {return a + b.y;}, 0)
+            })
+            // directe uren sommeren
+            var direct = value.timecharts.reduce(function(a, b) {return a + b.y;}, 0)
+
+            // Link maken van naam behandelaar
+            var naam_link = "<a href=/behandelaar/" + value.pk + ">" + key + "</a>"
+            // object met gegevens behandelaar aan array toevoegen
+            teamlid = {
+              naam:naam_link,
+              beschikbaar: beschikbaar,
+              ipp: ipp.toFixed(2),
+              direct: direct.toFixed(2),
+              productiviteit: ((direct/(beschikbaar - ipp)) *100).toFixed(2) + ' %'
+            }
+            teamleden.push(teamlid)
+          })
+          return teamleden
+        }
+      },
+      "aoColumns": [
+          { "data": "naam" }, // <-- which values to use inside object
+          { "data": "beschikbaar" },
+          { "data": "ipp" },
+          { "data": "direct" },
+          { "data": "productiviteit" }
+      ],
+      "language": {
+          "sProcessing": "Bezig...",
+          "sLengthMenu": "_MENU_ rijen weergeven",
+          "sZeroRecords": "Geen resultaten",
+          "sInfo": "_START_ tot _END_ van _TOTAL_ resultaten",
+          "sInfoEmpty": "Geen resultaten",
+          "sInfoFiltered": " (gefilterd uit _MAX_ resultaten)",
+          "sInfoPostFix": "",
+          "sSearch": "Zoeken:",
+          "sEmptyTable": "Geen resultaten",
+          "sInfoThousands": ".",
+          "sLoadingRecords": "Een moment geduld aub - bezig met laden...",
+          "oPaginate": {
+              "sFirst": "Eerste",
+              "sLast": "Laatste",
+              "sNext": "Volgende",
+              "sPrevious": "Vorige"
+          },
+          "oAria": {
+              "sSortAscending":  ": oplopend sorteren",
+              "sSortDescending": ": aflopend sorteren"
+          }
+      }
+
+    }
+    )}
+}
