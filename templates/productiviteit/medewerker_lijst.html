@@ -52,10 +52,10 @@
 
 
 <script type="text/javascript">
-
+  var context_pk = Number("{{naam.pk}}")
   initialise('#form_control')
   //
-  get_fill()
+  get_fill(pk = context_pk)
 </script>
 
 {% endblock %}

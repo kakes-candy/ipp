@@ -178,8 +178,9 @@ function getCookie(name) {
 
 
 
-function get_and_fill() {
-
+function get_and_fill(pk) {
+  console.log("pk ontvangen")
+  console.log(pk)
   //csrf token ophalen
    var csrftoken = getCookie('csrftoken');
    //wat zijn de gekozen waardes
@@ -191,7 +192,7 @@ function get_and_fill() {
       url : '/ajax_data/', // url van de ajax views
       type : "POST", // http method
       data : { csrfmiddlewaretoken : csrftoken,
-        keuze: val, niveau: level
+        keuze: val, niveau: level, id : context_pk,
     },
 
     // handle a successful response
@@ -293,6 +294,6 @@ function get_and_fill() {
 // zodat data ververst wordt bij aanpassing
 function initialise(id_select) {
    $(id_select).change(function() {
-   get_and_fill();
+   get_and_fill(context_pk);
   });
 }

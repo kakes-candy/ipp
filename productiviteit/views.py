@@ -146,16 +146,14 @@ def ajax_data(request):
 
     if request.method == 'POST' and request.is_ajax():
 
-        user = request.user
-        medewerker = Employee.objects.filter(user = user)
-        naam = medewerker
+        pk = request.POST.get('id')
         niveau = request.POST.get('niveau', 'individueel')
         doel = request.POST.get('doel', 'detail')
         if niveau == 'vestiging':
-            vestiging = medewerker.get().vestiging
+            vestiging = Vestiging.objects.get(pk = pk)
             med_lijst = vestiging.employee_set.values()
         elif niveau == 'individueel':
-            med_lijst = medewerker
+            med_lijst = Employee.objects.filter(pk = pk)
 
         # uit de keuze een start en einddatum berekenen
         try:

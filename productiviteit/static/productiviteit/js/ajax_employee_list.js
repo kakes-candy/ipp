@@ -22,24 +22,19 @@ function getCookie(name) {
 // zodat data ververst wordt bij aanpassing
 function initialise(id_select) {
    $(id_select).change(function() {
-   get_fill();
+   get_fill(context_pk);
   });
 }
 
 
-function get_fill() {
+function get_fill(pk) {
 
   var target = '#medewerker_lijst'
-  console.log('get fill starting')
-  console.log($(target))
-  console.log($(target).hasClass('dataTable'))
 
   if($(target).hasClass('dataTable')) {
-    console.log('reloading')
     $(target).DataTable().ajax.reload()
   }
   if (! $(target).hasClass('dataTable')){
-    console.log('target is not a datatable')
     $(target).DataTable({
 
       "ajax": {
@@ -48,7 +43,8 @@ function get_fill() {
         "data" : function () {
                 var t = { "csrfmiddlewaretoken" : getCookie('csrftoken'),
                   "keuze": val = $('#form_control').val(),
-                  "niveau": level = $('.level').text()}
+                  "niveau": level = $('.level').text(),
+                  "id" : pk}
                   console.log(t)
                   return t;
                 },
