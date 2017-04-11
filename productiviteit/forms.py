@@ -1,8 +1,23 @@
 from django import forms
 from .models import Planning
+from django.forms import BaseModelFormSet
+from django.forms import formset_factory
 
 
 class PlanningForm(forms.ModelForm):
+
+
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        # print("uit de form init: " + str(gebruiker.username))
+        super(PlanningForm, self).__init__(*args, **kwargs)
+        keuzes = self.fields['soort'].choices
+        def choicefilter(choices, excluded):
+            return [item for item in choices if item[0] not in excluded]
+        if self.user.username == 'mschrijver':
+            self.fields['soort'].choices = choicefilter(choices = keuzes, excluded = ['MLV', 'KP', 'OLD', 'WO', 'WBG_K'])
+
 
     def clean(self):
         cleaned_data = super(PlanningForm, self).clean()

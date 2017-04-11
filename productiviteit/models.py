@@ -119,7 +119,8 @@ class Planning(models.Model):
     ,('TLT', 'taken teamleider')
     ,('KP', 'KP werkzaamheden')
     ,('OV', 'overig')
-    ,('NB', 'niet benoemd'))
+    ,('NB', 'niet benoemd')
+    ,('BC', 'Behandelcoordinatie'))
 
     medewerker = models.ForeignKey(Employee)
     soort = models.CharField(max_length = 5, choices = PLANNING_KEUZES, default = 'OV')

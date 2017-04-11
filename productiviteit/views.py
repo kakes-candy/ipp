@@ -66,11 +66,11 @@ def planning(request, planning_id=None):
     # lege formset maken met formset_factory
     planning_formset = modelformset_factory(Planning, form = PlanningForm, extra = extra)
     # dan definitieve aanmaken met evt initiele data
-    formset = planning_formset(queryset = qset)
+    formset = planning_formset(queryset = qset, form_kwargs={'user': request.user})
 
     # ingevulde formulieren verwerken
     if request.method == 'POST':
-        formset = planning_formset(request.POST)
+        formset = planning_formset(request.POST, form_kwargs={'user': request.user})
         if formset.is_valid():
 
             verdelingen_to_save = []
