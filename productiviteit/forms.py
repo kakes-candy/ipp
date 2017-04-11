@@ -9,14 +9,15 @@ class PlanningForm(forms.ModelForm):
 
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user')
-        # print("uit de form init: " + str(gebruiker.username))
+        # employee object van gebruiker om keuzes te bepalen
+        self.employee = kwargs.pop('medewerker')
         super(PlanningForm, self).__init__(*args, **kwargs)
         keuzes = self.fields['soort'].choices
+        # functie om keuzes te beperken
         def choicefilter(choices, excluded):
             return [item for item in choices if item[0] not in excluded]
-        if self.user.username == 'mschrijver':
-            self.fields['soort'].choices = choicefilter(choices = keuzes, excluded = ['MLV', 'KP', 'OLD', 'WO', 'WBG_K'])
+        if self.employee.functie.naam == 'Basispsycholoog':
+            self.fields['soort'].choices = choicefilter(choices = keuzes, excluded = ['TLT', 'KP', 'SV_G', 'WBG_G', 'BC'])
 
 
     def clean(self):

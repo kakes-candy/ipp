@@ -50,6 +50,7 @@ View waarin planningen kunnen worden ingevoerd, of aangepast
 def planning(request, planning_id=None):
 
     medewerker = Employee.objects.get(user = request.user)
+
     if planning_id:
         # voor template, voor een edit willen we niet de knoppen tonen om meer
         # planningen aan te maken
@@ -66,11 +67,11 @@ def planning(request, planning_id=None):
     # lege formset maken met formset_factory
     planning_formset = modelformset_factory(Planning, form = PlanningForm, extra = extra)
     # dan definitieve aanmaken met evt initiele data
-    formset = planning_formset(queryset = qset, form_kwargs={'user': request.user})
+    formset = planning_formset(queryset = qset, form_kwargs={'medewerker': medewerker})
 
     # ingevulde formulieren verwerken
     if request.method == 'POST':
-        formset = planning_formset(request.POST, form_kwargs={'user': request.user})
+        formset = planning_formset(request.POST, form_kwargs={'medewerker': medewerker})
         if formset.is_valid():
 
             verdelingen_to_save = []
