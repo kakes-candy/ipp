@@ -190,7 +190,7 @@ def ajax_data(request):
         p_afas = Prefetch('timecharts',
             queryset = Timechart.objects\
                         # .only('datum', 'direct', 'aantal')\
-                        .filter(datum__gte=start, datum__lte=eind, direct='1.0')\
+                        .filter(datum__gte=start, datum__lte=eind, direct__in = ['1.0', 'VV'])\
                         .annotate(groep_maand = TruncMonth('datum')))
 
         # regels voor prefetch ipp uren
@@ -219,12 +219,22 @@ def ajax_data(request):
             # Pk van de behandelaar
             tl_pk = teamlid.pk
 
-            #  Afas uren per maand uitrekenen
+            #  Afas directe uren per maand uitrekenen
             timecharts = teamlid.timecharts\
-                    .values('groep_maand')\
+                    .filter(direct = '1.0')\
+                    .values('direct', 'groep_maand')\
                     .annotate(uren_direct = Sum('aantal'))\
-                    .values('groep_maand', 'uren_direct')
+                    .values('groep_maand', 'direct', 'uren_direct')
 
+            #  Afas uren per maand uitrekenen
+            timecharts_vakantie = teamlid.timecharts\
+                    .filter(direct = 'VV')\
+                    .values('direct', 'groep_maand')\
+                    .annotate(uren_direct = Sum('aantal'))\
+                    .values('groep_maand', 'direct', 'uren_direct')
+
+
+            print(timecharts_vakantie)
             # toevoegen aan dict
             teamleden[tl_naam] = {'timecharts': {x['groep_maand']: x['uren_direct'] for x in timecharts}}
 
@@ -248,8 +258,14 @@ def ajax_data(request):
             # ipp uren en beschibare uren samenvoegen en bij het totaalniveau optellen
             teamleden[tl_naam]['beschikbaar'] = {}
             for u in uren_b:
+                # Vakantie uren
+                vak = 0
+                if timecharts_vakantie.filter(groep_maand = u['groep_maand']).exists():
+                    vak = timecharts_vakantie.values_list('uren_direct', flat = True).get(groep_maand = u['groep_maand'])
+                print(vak)
+
                 # Voor parttimers aantal beschikbare uren verminderen
-                teamleden[tl_naam]['beschikbaar'][u['groep_maand']]  = u['beschikbaar'] * teamlid.fte
+                teamleden[tl_naam]['beschikbaar'][u['groep_maand']]  = (u['beschikbaar'] * teamlid.fte) - float(vak)
 
             # lijst van 12 maanden om waarden op te hangen
             kapstok = month_list(eind)
